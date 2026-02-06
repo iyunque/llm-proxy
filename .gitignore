@@ -1,0 +1,5 @@
+# Miscellaneous
+node_modules/
+/.vscode
+/.qoder
+dist/

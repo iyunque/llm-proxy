@@ -1,0 +1,3 @@
+@echo off
+echo Testing login...
+curl.exe -X POST http://localhost:8080/admin/login -H "Content-Type: application/json" --data "{"""username""" : """admin""" , """password""" : """admin"""}" -v

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI API 转发与管理平台 - 智能 API 代理服务</title>
+    <meta name="description" content="高性能的 AI API 转发与管理平台，支持 DeepSeek、ChatGPT、智谱 AI 等多种大语言模型，提供统一接口管理、动态提示词配置、调用统计分析等功能。">
+    <meta name="keywords" content="AI API, LLM代理, API转发, DeepSeek, ChatGPT, 智谱AI">
+  </head>
+  <body>
+    <div id="app">
+      <!-- 导航栏 -->
+      <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 flex items-center">
+                <span class="text-2xl font-bold text-indigo-600">AI API Platform</span>
+              </div>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+              <a href="#features" class="text-gray-700 hover:text-indigo-600 transition-colors">功能特性</a>
+              <a href="#architecture" class="text-gray-700 hover:text-indigo-600 transition-colors">技术架构</a>
+              <a href="#quickstart" class="text-gray-700 hover:text-indigo-600 transition-colors">快速开始</a>
+              <a href="#docs" class="text-gray-700 hover:text-indigo-600 transition-colors">文档</a>
+              <a href="https://github.com/your-repo" target="_blank" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Hero 区域 -->
+      <div class="hero-bg text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div class="text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">
+              AI API 转发与管理平台
+            </h1>
+            <p class="text-xl md:text-2xl mb-10 max-w-3xl mx-auto opacity-90">
+              高性能的智能 API 代理服务，统一管理多个大语言模型，提供动态提示词配置、调用统计分析和可视化管理界面。
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+              <a href="#quickstart" class="bg-white text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors">
+                快速开始
+              </a>
+              <a href="#features" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-indigo-600 transition-colors">
+                了解功能
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 功能特性 -->
+      <section id="features" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">核心功能</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              为开发者提供一站式 AI API 管理解决方案
+            </p>
+          </div>
+          
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- 功能卡片 1 -->
+            <div class="feature-card bg-white p-8 rounded-xl shadow-sm">
+              <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">API 转发代理</h3>
+              <p class="text-gray-600">
+                统一接口格式，动态路由到不同的大模型供应商，支持 DeepSeek、ChatGPT、智谱 AI 等主流平台。
+              </p>
+            </div>
+
+            <!-- 功能卡片 2 -->
+            <div class="feature-card bg-white p-8 rounded-xl shadow-sm">
+              <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">密钥管理</h3>
+              <p class="text-gray-600">
+                为每个 API 路径配置独立的访问密钥，支持 32 位以内字符，确保接口访问安全可控。
+              </p>
+            </div>
+
+            <!-- 功能卡片 3 -->
+            <div class="feature-card bg-white p-8 rounded-xl shadow-sm">
+              <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">提示词管理</h3>
+              <p class="text-gray-600">
+                为不同业务场景配置专属的系统提示词，动态加载到 AI 模型中，实现精准的业务定制。
+              </p>
+            </div>
+
+            <!-- 功能卡片 4 -->
+            <div class="feature-card bg-white p-8 rounded-xl shadow-sm">
+              <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">数据统计</h3>
+              <p class="text-gray-600">
+                实时统计调用次数、Token 消耗、响应时间等指标，内存累加+定时持久化策略，性能优异。
+              </p>
+            </div>
+
+            <!-- 功能卡片 5 -->
+            <div class="feature-card bg-white p-8 rounded-xl shadow-sm">
+              <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-6">
+                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">可视化管理</h3>
+              <p class="text-gray-600">
+                现代化的 Web 管理界面，支持供应商管理、API 路径配置、统计报表查询等完整功能。
+              </p>
+            </div>
+
+            <!-- 功能卡片 6 -->
+            <div class="feature-card bg-white p-8 rounded-xl shadow-sm">
+              <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-6">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">性能优化</h3>
+              <p class="text-gray-600">
+                内存缓存机制，避免每次请求查询数据库，响应时间从 10ms 降至 0.01ms，提升 100-1000 倍性能。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 技术架构 -->
+      <section id="architecture" class="py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">技术架构</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              基于现代化技术栈构建，高性能、易扩展、易维护
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h3 class="text-2xl font-semibold text-gray-900 mb-6">后端技术栈</h3>
+              <ul class="space-y-4">
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-indigo-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>Go + Gin</strong> - 高性能 Web 框架，天然支持高并发</span>
+                </li>
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-green-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>GORM</strong> - 强大的 ORM，支持多数据库切换</span>
+                </li>
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-blue-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>SQLite/MySQL</strong> - 灵活的数据库选择</span>
+                </li>
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-purple-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>JWT</strong> - 安全的身份认证机制</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="text-2xl font-semibold text-gray-900 mb-6">前端技术栈</h3>
+              <ul class="space-y-4">
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-indigo-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>Vue 3</strong> - 渐进式 JavaScript 框架</span>
+                </li>
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-green-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>Element Plus</strong> - 现代化 UI 组件库</span>
+                </li>
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-blue-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>ECharts</strong> - 强大的数据可视化</span>
+                </li>
+                <li class="flex items-center">
+                  <div class="w-3 h-3 bg-purple-600 rounded-full mr-3"></div>
+                  <span class="text-gray-700"><strong>Vite</strong> - 极速的构建工具</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-16 bg-gray-50 rounded-xl p-8">
+            <h3 class="text-2xl font-semibold text-gray-900 mb-6 text-center">系统架构图</h3>
+            <div class="bg-white p-6 rounded-lg">
+              <pre class="text-sm text-gray-700">
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Client API    │────│  Proxy Server   │────│  LLM Provider   │
+│                 │    │                 │    │                 │
+│ /api/translate  │    │ - Route Cache   │    │ - OpenAI API    │
+│ X-API-Key:xxx   │    │ - Stats Service │    │ - DeepSeek API  │
+│ {content:"..."} │    │ - JWT Auth      │    │ - GLM API       │
+└─────────────────┘    │ - Embed Static  │    └─────────────────┘
+                       │ - Config Load   │
+                       └─────────────────┘
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 快速开始 -->
+      <section id="quickstart" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">快速开始</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              简单几步即可部署您的 AI API 管理平台
+            </p>
+          </div>
+
+          <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-xl shadow-sm p-8">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-6">1. 下载程序</h3>
+              <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="border rounded-lg p-4">
+                  <h4 class="font-semibold text-gray-900 mb-2">Windows</h4>
+                  <div class="code-block text-sm">
+                    ai-server.exe
+                  </div>
+                </div>
+                <div class="border rounded-lg p-4">
+                  <h4 class="font-semibold text-gray-900 mb-2">Linux</h4>
+                  <div class="code-block text-sm">
+                    ai-server-linux
+                  </div>
+                </div>
+              </div>
+
+              <h3 class="text-2xl font-semibold text-gray-900 mb-6">2. 配置文件</h3>
+              <div class="mb-8">
+                <p class="text-gray-700 mb-4">创建 <code class="bg-gray-100 px-2 py-1 rounded">config/config.yaml</code>：</p>
+                <div class="code-block">
+server:
+  port: 8080
+  jwt_secret: "your_jwt_secret_key"
+
+database:
+  type: "sqlite"
+  sqlite:
+    path: "./data.db"
+
+stats:
+  sync_interval: 60
+                </div>
+              </div>
+
+              <h3 class="text-2xl font-semibold text-gray-900 mb-6">3. 启动服务</h3>
+              <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 class="font-semibold text-gray-900 mb-2">Windows</h4>
+                  <div class="code-block">
+.\ai-server.exe
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-semibold text-gray-900 mb-2">Linux</h4>
+                  <div class="code-block">
+chmod +x ai-server-linux
+./ai-server-linux
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+                <p class="text-blue-800">
+                  <strong>默认账号：</strong> admin / admin123
+                </p>
+                <p class="text-blue-800 mt-2">
+                  启动后访问 <a href="http://localhost:8080" class="underline">http://localhost:8080</a> 进入管理后台
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- API 示例 -->
+      <section class="py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">API 调用示例</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              简单易用的 API 接口设计
+            </p>
+          </div>
+
+          <div class="max-w-4xl mx-auto">
+            <div class="bg-gray-800 rounded-xl p-6">
+              <h3 class="text-white font-semibold mb-4">调用 AI API</h3>
+              <div class="code-block">
+curl -X POST http://localhost:8080/api/translate \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key" \
+  -d '{"content": "Hello, how are you?"}'
+              </div>
+            </div>
+
+            <div class="mt-8 bg-gray-800 rounded-xl p-6">
+              <h3 class="text-white font-semibold mb-4">响应示例</h3>
+              <div class="code-block">
+{
+  "id": "chatcmpl-xxxxx",
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "你好！我很好，谢谢你的关心。有什么我可以帮助你的吗？"
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 25,
+    "completion_tokens": 28,
+    "total_tokens": 53
+  }
+}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 文档 -->
+      <section id="docs" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">完整文档</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              详细的技术文档和使用指南
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <a href="../README.md" target="_blank" class="feature-card bg-white p-6 rounded-xl shadow-sm text-center hover:border-indigo-500 border">
+              <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">使用文档</h3>
+              <p class="text-gray-600">安装部署、使用指南、API 说明</p>
+            </a>
+
+            <a href="../TECHNICAL.md" target="_blank" class="feature-card bg-white p-6 rounded-xl shadow-sm text-center hover:border-green-500 border">
+              <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">技术文档</h3>
+              <p class="text-gray-600">架构设计、核心模块、扩展开发</p>
+            </a>
+
+            <a href="https://github.com/your-repo" target="_blank" class="feature-card bg-white p-6 rounded-xl shadow-sm text-center hover:border-blue-500 border">
+              <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">源码仓库</h3>
+              <p class="text-gray-600">GitHub 项目地址</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 页脚 -->
+      <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-indigo-400 mb-4">AI API Platform</div>
+            <p class="text-gray-400 mb-6">
+              高性能的 AI API 转发与管理平台
+            </p>
+            <div class="flex justify-center space-x-6">
+              <a href="https://github.com/your-repo" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                GitHub
+              </a>
+              <a href="../README.md" class="text-gray-400 hover:text-white transition-colors">
+                文档
+              </a>
+              <a href="mailto:support@example.com" class="text-gray-400 hover:text-white transition-colors">
+                联系我们
+              </a>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-800 text-gray-500 text-sm">
+              © 2026 AI API Platform. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
