@@ -3,7 +3,7 @@
     <el-aside :width="isCollapse ? '64px' : '200px'" class="sidebar">
       <div class="logo-container">
         <transition name="fade">
-          <h2 v-if="!isCollapse" class="logo-text">AI API 平台</h2>
+          <h2 v-if="!isCollapse" class="logo-text">LLM Proxy</h2>
           <h2 v-else class="logo-text-mini">AI</h2>
         </transition>
       </div>
@@ -22,7 +22,7 @@
         </el-menu-item>
         <el-menu-item index="/providers">
           <el-icon><Connection /></el-icon>
-          <template #title><span>AI 供应商</span></template>
+          <template #title><span>LMM供应商</span></template>
         </el-menu-item>
         <el-menu-item index="/endpoints">
           <el-icon><Link /></el-icon>

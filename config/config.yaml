@@ -1,5 +1,5 @@
 server:
-  port: 8088
+  port: 8080
   jwt_secret: "your_jwt_secret_key"
   frontend_path: "./static/dist" # 前端静态资源路径
 
