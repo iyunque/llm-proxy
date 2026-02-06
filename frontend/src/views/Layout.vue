@@ -90,7 +90,7 @@ const isCollapse = ref(false)
 
 const breadcrumbMap = {
   '/': '仪表盘',
-  '/providers': 'AI 供应商管理',
+  '/providers': 'LLM供应商管理',
   '/endpoints': 'API 路径管理',
   '/stats': '调用统计查询',
   '/test': 'API 接口测试',
