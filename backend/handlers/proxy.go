@@ -47,16 +47,13 @@ func ProxyHandler(c *gin.Context) {
 	// 从缓存获取 API 路径配置
 	endpoint, exists := services.GetEndpointByPath(path)
 	if !exists {
-		fmt.Printf("[PROXY DEBUG] Endpoint not found in cache: %s\n", path)
 		c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
 		return
 	}
 	if endpoint.ApiKey != apiKey {
-		fmt.Printf("[PROXY DEBUG] API Key mismatch for path %s. Expected: %s, Got: %s\n", path, endpoint.ApiKey, apiKey)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid API Path or API Key"})
 		return
 	}
-	fmt.Printf("[PROXY DEBUG] Successfully authenticated endpoint: %s (ID: %d)\n", path, endpoint.ID)
 
 	var req ProxyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -124,7 +121,7 @@ func ProxyHandler(c *gin.Context) {
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
 			line := scanner.Text()
-			fmt.Println("data:", line) // Debugging
+			//fmt.Println("data:", line) // Debugging
 			// 将供应商的 SSE 数据转发给客户端
 			if strings.TrimSpace(line) != "" {
 				c.Writer.Write([]byte(line + "\n"))

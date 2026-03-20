@@ -139,13 +139,6 @@ func UpdateEndpoint(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("=== Update Debug ===\n")
-	fmt.Printf("Old ProviderID: %d\n", oldProviderID)
-	fmt.Printf("New ProviderID: %d\n", input.ProviderID)
-	fmt.Printf("Old StreamOutput: %t\n", oldEndpoint.StreamOutput)
-	fmt.Printf("New StreamOutput: %t\n", input.StreamOutput)
-	fmt.Printf("Path changed: %s -> %s\n", oldPath, input.Path)
-
 	// 直接更新特定字段，确保 ProviderID 被正确更新
 	updates := models.APIEndpoint{
 		Path:         input.Path,
@@ -163,10 +156,6 @@ func UpdateEndpoint(c *gin.Context) {
 	// 重新加载完整数据
 	var updatedEndpoint models.APIEndpoint
 	models.DB.Preload("Provider").First(&updatedEndpoint, id)
-
-	fmt.Printf("After update - ProviderID in DB: %d\n", updatedEndpoint.ProviderID)
-	fmt.Printf("After update - StreamOutput in DB: %t\n", updatedEndpoint.StreamOutput)
-	fmt.Printf("Provider name: %s\n", updatedEndpoint.Provider.Name)
 
 	// 缓存处理
 	if oldPath != input.Path {

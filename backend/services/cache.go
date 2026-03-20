@@ -25,10 +25,8 @@ func InitEndpointCache() error {
 
 	for i := range endpoints {
 		endpointCache[endpoints[i].Path] = &endpoints[i]
-		fmt.Printf("[CACHE DEBUG] Loaded endpoint: %s (ID: %d, StreamOutput: %t)\n", endpoints[i].Path, endpoints[i].ID, endpoints[i].StreamOutput)
 	}
 
-	fmt.Printf("[CACHE DEBUG] Total endpoints loaded: %d\n", len(endpoints))
 	return nil
 }
 
@@ -38,11 +36,6 @@ func GetEndpointByPath(path string) (*models.APIEndpoint, bool) {
 	defer endpointCacheMux.RUnlock()
 
 	endpoint, exists := endpointCache[path]
-	if !exists {
-		fmt.Printf("[CACHE DEBUG] Path not found in cache: %s\n", path)
-	} else {
-		fmt.Printf("[CACHE DEBUG] Found cached endpoint: %s (ID: %d, StreamOutput: %t)\n", path, endpoint.ID, endpoint.StreamOutput)
-	}
 	return endpoint, exists
 }
 
@@ -54,7 +47,6 @@ func UpdateEndpointCache(endpoint *models.APIEndpoint) {
 	// 重新加载 Provider 关联数据
 	models.DB.Preload("Provider").First(endpoint, endpoint.ID)
 	endpointCache[endpoint.Path] = endpoint
-	fmt.Printf("[CACHE DEBUG] Updated cached endpoint: %s (ID: %d, StreamOutput: %t)\n", endpoint.Path, endpoint.ID, endpoint.StreamOutput)
 }
 
 // DeleteEndpointCache 从缓存中删除 API 路径
@@ -63,7 +55,6 @@ func DeleteEndpointCache(path string) {
 	defer endpointCacheMux.Unlock()
 
 	delete(endpointCache, path)
-	fmt.Printf("[CACHE DEBUG] Deleted cached endpoint: %s\n", path)
 }
 
 // RefreshEndpointCache 刷新整个缓存
