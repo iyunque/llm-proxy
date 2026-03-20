@@ -48,6 +48,13 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column prop="EnableThinking" label="思考模式" width="100">
+        <template #default="scope">
+          <el-tag :type="scope.row.EnableThinking ? 'success' : 'info'">
+            {{ scope.row.EnableThinking ? '开启' : '关闭' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="180">
         <template #default="scope">
           <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -76,6 +83,9 @@
         </el-form-item>
         <el-form-item label="流式输出">
           <el-switch v-model="form.StreamOutput" />
+        </el-form-item>
+        <el-form-item label="思考模式">
+          <el-switch v-model="form.EnableThinking" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -106,6 +116,7 @@ const form = reactive({
   ProviderID: null,
   SystemPrompt: '',
   StreamOutput: false,
+  EnableThinking: false,
 })
 
 const filteredData = computed(() => {
@@ -144,7 +155,7 @@ const copyToClipboard = (text) => {
 
 const handleAdd = () => {
   dialogTitle.value = '添加 API 路径'
-  Object.assign(form, { ID: null, Path: '', ApiKey: '', ProviderID: null, SystemPrompt: '', StreamOutput: false })
+  Object.assign(form, { ID: null, Path: '', ApiKey: '', ProviderID: null, SystemPrompt: '', StreamOutput: false, EnableThinking: false })
   dialogVisible.value = true
 }
 

@@ -28,12 +28,13 @@ type AIProvider struct {
 
 type APIEndpoint struct {
 	gorm.Model
-	Path         string `gorm:"uniqueIndex;not null"` // 如 /api/translate
-	SystemPrompt string `gorm:"type:text"`
-	ApiKey       string `gorm:"size:32;not null"` // 客户端调用此接口的Key
-	ProviderID   uint
-	Provider     AIProvider `gorm:"foreignKey:ProviderID"`
-	StreamOutput bool       `gorm:"default:false"` // 是否启用流式输出
+	Path           string `gorm:"uniqueIndex;not null"` // 如 /api/translate
+	SystemPrompt   string `gorm:"type:text"`
+	ApiKey         string `gorm:"size:32;not null"` // 客户端调用此接口的Key
+	ProviderID     uint
+	Provider       AIProvider `gorm:"foreignKey:ProviderID"`
+	StreamOutput   bool       `gorm:"default:false"` // 是否启用流式输出
+	EnableThinking bool       `gorm:"default:false"` // 是否启用思考模式
 }
 
 type APIStats struct {

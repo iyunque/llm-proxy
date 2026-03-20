@@ -4,7 +4,6 @@ import (
 	"ai-api-platform/backend/models"
 	"ai-api-platform/backend/services"
 	"ai-api-platform/backend/utils"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -123,15 +122,16 @@ func UpdateEndpoint(c *gin.Context) {
 	}
 
 	oldPath := oldEndpoint.Path
-	oldProviderID := oldEndpoint.ProviderID
+	//oldProviderID := oldEndpoint.ProviderID
 
 	// 接收更新数据
 	var input struct {
-		Path         string `json:"Path"`
-		ApiKey       string `json:"ApiKey"`
-		ProviderID   uint   `json:"ProviderID"`
-		SystemPrompt string `json:"SystemPrompt"`
-		StreamOutput bool   `json:"StreamOutput"`
+		Path           string `json:"Path"`
+		ApiKey         string `json:"ApiKey"`
+		ProviderID     uint   `json:"ProviderID"`
+		SystemPrompt   string `json:"SystemPrompt"`
+		StreamOutput   bool   `json:"StreamOutput"`
+		EnableThinking bool   `json:"EnableThinking"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -141,11 +141,12 @@ func UpdateEndpoint(c *gin.Context) {
 
 	// 直接更新特定字段，确保 ProviderID 被正确更新
 	updates := models.APIEndpoint{
-		Path:         input.Path,
-		ApiKey:       input.ApiKey,
-		ProviderID:   input.ProviderID,
-		SystemPrompt: input.SystemPrompt,
-		StreamOutput: input.StreamOutput,
+		Path:           input.Path,
+		ApiKey:         input.ApiKey,
+		ProviderID:     input.ProviderID,
+		SystemPrompt:   input.SystemPrompt,
+		StreamOutput:   input.StreamOutput,
+		EnableThinking: input.EnableThinking,
 	}
 
 	if err := models.DB.Model(&models.APIEndpoint{}).Where("id = ?", id).Updates(updates).Error; err != nil {

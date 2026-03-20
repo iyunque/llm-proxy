@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -18,9 +17,10 @@ type ProxyRequest struct {
 }
 
 type OpenAIRequest struct {
-	Model    string          `json:"model"`
-	Messages []OpenAIMessage `json:"messages"`
-	Stream   bool            `json:"stream"`
+	Model     string                 `json:"model"`
+	Messages  []OpenAIMessage        `json:"messages"`
+	Stream    bool                   `json:"stream"`
+	ExtraBody map[string]interface{} `json:"extra_body,omitempty"`
 }
 
 type OpenAIMessage struct {
@@ -71,6 +71,13 @@ func ProxyHandler(c *gin.Context) {
 		Stream: endpoint.StreamOutput, // 根据配置决定是否启用流式输出
 	}
 
+	// 如果启用思考模式，设置 extra_body
+	if endpoint.EnableThinking {
+		openAIReq.ExtraBody = map[string]interface{}{
+			"enable_thinking": true,
+		}
+	}
+
 	jsonData, _ := json.Marshal(openAIReq)
 
 	client := &http.Client{}
@@ -117,15 +124,25 @@ func ProxyHandler(c *gin.Context) {
 			return
 		}
 
+		// 监听客户端连接关闭
+		clientClosed := c.Request.Context().Done()
+
 		// 读取并处理供应商的 SSE 响应
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
-			line := scanner.Text()
-			//fmt.Println("data:", line) // Debugging
-			// 将供应商的 SSE 数据转发给客户端
-			if strings.TrimSpace(line) != "" {
-				c.Writer.Write([]byte(line + "\n"))
-				flusher.Flush()
+			select {
+			case <-clientClosed:
+				// 客户端已断开连接，停止转发并关闭响应体
+				resp.Body.Close()
+				return
+			default:
+				line := scanner.Text()
+				//fmt.Println("data:", line) // Debugging
+				// 将供应商的 SSE 数据转发给客户端
+				if strings.TrimSpace(line) != "" {
+					c.Writer.Write([]byte(line + "\n"))
+					flusher.Flush()
+				}
 			}
 		}
 
