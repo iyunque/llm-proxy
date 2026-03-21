@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <el-row :gutter="20" class="stats-cards">
-      <el-col :span="8">
+      <el-col :span="6">
         <el-card shadow="hover" class="stat-card calls-card">
           <div class="card-icon">
             <el-icon :size="40"><DataLine /></el-icon>
@@ -13,7 +13,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="6">
         <el-card shadow="hover" class="stat-card input-card">
           <div class="card-icon">
             <el-icon :size="40"><Upload /></el-icon>
@@ -25,7 +25,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="6">
         <el-card shadow="hover" class="stat-card output-card">
           <div class="card-icon">
             <el-icon :size="40"><Download /></el-icon>
@@ -34,6 +34,18 @@
             <div class="card-label">今日输出 Tokens</div>
             <div class="card-value">{{ totalOutput.toLocaleString() }}</div>
             <div class="card-trend">较昨日 <span class="trend-up">+15%</span></div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card cache-card">
+          <div class="card-icon">
+            <el-icon :size="40"><Lightning /></el-icon>
+          </div>
+          <div class="card-content">
+            <div class="card-label">今日缓存命中 Tokens</div>
+            <div class="card-value">{{ totalCache.toLocaleString() }}</div>
+            <div class="card-trend">较昨日 <span class="trend-up">+5%</span></div>
           </div>
         </el-card>
       </el-col>
@@ -68,21 +80,24 @@
 import { ref, onMounted, nextTick } from 'vue'
 import api from '../api'
 import * as echarts from 'echarts'
-import { DataLine, Upload, Download } from '@element-plus/icons-vue'
+import { DataLine, Upload, Download, Lightning } from '@element-plus/icons-vue'
 
 const totalCalls = ref(0)
 const totalInput = ref(0)
 const totalOutput = ref(0)
+const totalCache = ref(0)
 const pieChart = ref(null)
 const barChart = ref(null)
 const statsData = ref([])
 
 const fetchData = async () => {
-  const data = await api.get('/stats')
+  const response = await api.get('/stats')
+  const data = response.data
   statsData.value = data
   totalCalls.value = data.reduce((acc, cur) => acc + cur.CallCount, 0)
   totalInput.value = data.reduce((acc, cur) => acc + cur.InputTokens, 0)
   totalOutput.value = data.reduce((acc, cur) => acc + cur.OutputTokens, 0)
+  totalCache.value = data.reduce((acc, cur) => acc + cur.CacheHitTokens, 0)
   
   await nextTick()
   initCharts()
@@ -140,6 +155,7 @@ const initCharts = () => {
     const categories = statsData.value.map(item => `API ${item.APIEndpointID}`)
     const inputData = statsData.value.map(item => item.InputTokens)
     const outputData = statsData.value.map(item => item.OutputTokens)
+    const cacheData = statsData.value.map(item => item.CacheHitTokens)
     
     barInstance.setOption({
       tooltip: {
@@ -149,7 +165,7 @@ const initCharts = () => {
         }
       },
       legend: {
-        data: ['输入 Token', '输出 Token']
+        data: ['输入 Token', '输出 Token', '缓存命中 Token']
       },
       grid: {
         left: '3%',
@@ -179,6 +195,14 @@ const initCharts = () => {
           data: outputData.length > 0 ? outputData : [0],
           itemStyle: {
             color: '#67c23a'
+          }
+        },
+        {
+          name: '缓存命中 Token',
+          type: 'bar',
+          data: cacheData.length > 0 ? cacheData : [0],
+          itemStyle: {
+            color: '#e6a23c'
           }
         }
       ]

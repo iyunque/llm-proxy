@@ -9,6 +9,7 @@ import (
 	"ai-api-platform/backend/utils"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -27,6 +28,9 @@ func main() {
 
 	// 3. 检查并创建默认管理员
 	createDefaultAdmin()
+
+	// 3.5. 创建测试统计数据
+	createTestStats()
 
 	// 4. 初始化统计服务
 	services.InitStats()
@@ -93,5 +97,38 @@ func createDefaultAdmin() {
 		}
 		models.DB.Create(&admin)
 		fmt.Println("Created default admin user: admin / admin123")
+	}
+}
+
+func createTestStats() {
+	var count int64
+	models.DB.Model(&models.APIStats{}).Count(&count)
+	if count == 0 {
+		// 创建一些测试统计数据
+		today := time.Now().Format("2006-01-02")
+		testStats := []models.APIStats{
+			{
+				APIEndpointID:  1,
+				Date:           today,
+				CallCount:      10,
+				InputTokens:    500,
+				OutputTokens:   300,
+				CacheHitTokens: 50,
+				LastUpdated:    time.Now(),
+			},
+			{
+				APIEndpointID:  2,
+				Date:           today,
+				CallCount:      5,
+				InputTokens:    250,
+				OutputTokens:   150,
+				CacheHitTokens: 25,
+				LastUpdated:    time.Now(),
+			},
+		}
+		for _, stat := range testStats {
+			models.DB.Create(&stat)
+		}
+		fmt.Println("Created test statistics data")
 	}
 }

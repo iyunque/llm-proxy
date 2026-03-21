@@ -33,8 +33,8 @@ const selectedDate = ref(new Date().toISOString().split('T')[0])
 const tableData = ref([])
 
 const fetchData = async () => {
-  const data = await api.get('/stats', { params: { date: selectedDate.value } })
-  tableData.value = data
+  const response = await api.get('/stats', { params: { date: selectedDate.value } })
+  tableData.value = response.data
 }
 
 onMounted(fetchData)

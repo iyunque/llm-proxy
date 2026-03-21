@@ -197,8 +197,19 @@ func GetStats(c *gin.Context) {
 		date = time.Now().Format("2006-01-02")
 	}
 	var stats []models.APIStats
+	var count int64
+
 	models.DB.Where("date = ?", date).Find(&stats)
-	c.JSON(http.StatusOK, stats)
+	models.DB.Model(&models.APIStats{}).Where("date = ?", date).Count(&count)
+
+	// 返回统计信息
+	result := gin.H{
+		"total_count": count,
+		"data":        stats,
+		"date_filter": date,
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 // --- User Management ---

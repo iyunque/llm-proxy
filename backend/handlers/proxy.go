@@ -75,6 +75,7 @@ func ProxyHandler(c *gin.Context) {
 	if endpoint.EnableThinking {
 		openAIReq.ExtraBody = map[string]interface{}{
 			"enable_thinking": true,
+			"reasoning_split": true,
 		}
 	}
 
@@ -127,6 +128,12 @@ func ProxyHandler(c *gin.Context) {
 		// 监听客户端连接关闭
 		clientClosed := c.Request.Context().Done()
 
+		var usage struct {
+			PromptTokens     int64 `json:"prompt_tokens"`
+			CompletionTokens int64 `json:"completion_tokens"`
+			TotalTokens      int64 `json:"total_tokens"`
+		}
+
 		// 读取并处理供应商的 SSE 响应
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
@@ -138,6 +145,24 @@ func ProxyHandler(c *gin.Context) {
 			default:
 				line := scanner.Text()
 				//fmt.Println("data:", line) // Debugging
+				// 检查是否是数据行
+				if strings.HasPrefix(line, "data: ") {
+					data := strings.TrimPrefix(line, "data: ")
+					if data != "[DONE]" {
+						// 尝试解析JSON以提取usage
+						var chunk map[string]interface{}
+						if err := json.Unmarshal([]byte(data), &chunk); err == nil {
+							if u, ok := chunk["usage"].(map[string]interface{}); ok {
+								if pt, ok := u["prompt_tokens"].(float64); ok {
+									usage.PromptTokens = int64(pt)
+								}
+								if ct, ok := u["completion_tokens"].(float64); ok {
+									usage.CompletionTokens = int64(ct)
+								}
+							}
+						}
+					}
+				}
 				// 将供应商的 SSE 数据转发给客户端
 				if strings.TrimSpace(line) != "" {
 					c.Writer.Write([]byte(line + "\n"))
@@ -154,6 +179,11 @@ func ProxyHandler(c *gin.Context) {
 		// 发送结束标记
 		c.Writer.Write([]byte("data: [DONE]\n"))
 		flusher.Flush()
+
+		// 记录统计数据
+		if usage.PromptTokens > 0 || usage.CompletionTokens > 0 {
+			services.AddStats(endpoint.ID, usage.PromptTokens, usage.CompletionTokens, 0)
+		}
 	} else {
 		// 非流式输出
 		body, _ := io.ReadAll(resp.Body)
