@@ -78,7 +78,17 @@ func UpdateProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	models.DB.Save(&provider)
+	if err := models.DB.Save(&provider).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save provider"})
+		return
+	}
+
+	// Provider 更新后需要刷新已缓存的 endpoints 以保证立即生效。
+	if err := services.RefreshEndpointCache(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh endpoint cache"})
+		return
+	}
+
 	c.JSON(http.StatusOK, provider)
 }
 

@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"ai-api-platform/backend/services"
-	"bufio"
-	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 type ProxyRequest struct {
@@ -61,64 +59,45 @@ func ProxyHandler(c *gin.Context) {
 		return
 	}
 
-	// 构造 OpenAI 格式请求
-	openAIReq := OpenAIRequest{
-		Model: endpoint.Provider.ModelName, // 使用供应商配置的模型名称
-		Messages: []OpenAIMessage{
-			{Role: "system", Content: endpoint.SystemPrompt},
-			{Role: "user", Content: req.Content},
+	// 创建 OpenAI 客户端
+	client := openai.NewClient(
+		option.WithAPIKey(endpoint.Provider.APIKey),
+		option.WithBaseURL(endpoint.Provider.APIAddress),
+	)
+
+	// 构造聊天完成请求参数
+	params := openai.ChatCompletionNewParams{
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(endpoint.SystemPrompt),
+			openai.UserMessage(req.Content),
 		},
-		Stream: endpoint.StreamOutput, // 根据配置决定是否启用流式输出
+		Model: endpoint.Provider.ModelName,
 	}
 
-	// 如果启用思考模式，设置 extra_body
+	// 思考模式开关（强制发送 true/false）
+	extraFields := map[string]interface{}{
+		"enable_thinking": endpoint.EnableThinking,
+	}
 	if endpoint.EnableThinking {
-		openAIReq.ExtraBody = map[string]interface{}{
-			"enable_thinking": true,
-			"reasoning_split": true,
-		}
+		extraFields["reasoning_split"] = true
+	} else {
+		extraFields["reasoning_split"] = false
 	}
-
-	jsonData, _ := json.Marshal(openAIReq)
-
-	client := &http.Client{}
-	httpReq, err := http.NewRequest("POST", endpoint.Provider.APIAddress, bytes.NewBuffer(jsonData))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
-		return
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+endpoint.Provider.APIKey)
-
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call AI provider: " + err.Error()})
-		return
-	}
-
-	// 检查供应商 API 的响应状态
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		// 读取供应商 API 的错误响应
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		c.JSON(resp.StatusCode, gin.H{"error": "AI provider returned error: " + string(body)})
-		return
-	}
-
-	defer resp.Body.Close()
+	params.SetExtraFields(extraFields)
 
 	// 根据流式输出配置决定响应方式
 	if endpoint.StreamOutput {
-		// 流式输出 - 先设置响应头并发送状态码
-		c.Status(http.StatusOK) // 强制返回 200 状态码
+		// 流式输出
+		stream := client.Chat.Completions.NewStreaming(c.Request.Context(), params)
+
+		// 设置响应头
+		c.Status(http.StatusOK)
 		c.Header("Content-Type", "text/event-stream")
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Headers", "*")
 
-		// 创建一个流式响应
 		flusher, ok := c.Writer.(http.Flusher)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming unsupported"})
@@ -134,50 +113,54 @@ func ProxyHandler(c *gin.Context) {
 			TotalTokens      int64 `json:"total_tokens"`
 		}
 
-		// 读取并处理供应商的 SSE 响应
-		scanner := bufio.NewScanner(resp.Body)
-		for scanner.Scan() {
+		// 处理流式响应
+		for stream.Next() {
 			select {
 			case <-clientClosed:
-				// 客户端已断开连接，停止转发并关闭响应体
-				resp.Body.Close()
+				stream.Close()
 				return
 			default:
-				line := scanner.Text()
-				//fmt.Println("data:", line) // Debugging
-				// 检查是否是数据行
-				if strings.HasPrefix(line, "data: ") {
-					data := strings.TrimPrefix(line, "data: ")
-					if data != "[DONE]" {
-						// 尝试解析JSON以提取usage
-						var chunk map[string]interface{}
-						if err := json.Unmarshal([]byte(data), &chunk); err == nil {
-							if u, ok := chunk["usage"].(map[string]interface{}); ok {
-								if pt, ok := u["prompt_tokens"].(float64); ok {
-									usage.PromptTokens = int64(pt)
-								}
-								if ct, ok := u["completion_tokens"].(float64); ok {
-									usage.CompletionTokens = int64(ct)
-								}
-							}
+				evt := stream.Current()
+				if len(evt.Choices) > 0 {
+					choice := evt.Choices[0]
+					if choice.Delta.Content != "" {
+						// 发送内容数据
+						data := map[string]interface{}{
+							"id":      evt.ID,
+							"object":  "chat.completion.chunk",
+							"created": evt.Created,
+							"model":   evt.Model,
+							"choices": []map[string]interface{}{
+								{
+									"index": 0,
+									"delta": map[string]interface{}{
+										"content": choice.Delta.Content,
+									},
+									"finish_reason": choice.FinishReason,
+								},
+							},
 						}
+						jsonData, _ := json.Marshal(data)
+						c.Writer.Write([]byte("data: " + string(jsonData) + "\n\n"))
+						flusher.Flush()
 					}
 				}
-				// 将供应商的 SSE 数据转发给客户端
-				if strings.TrimSpace(line) != "" {
-					c.Writer.Write([]byte(line + "\n"))
-					flusher.Flush()
+
+				// 记录使用情况
+				if evt.Usage.PromptTokens > 0 || evt.Usage.CompletionTokens > 0 {
+					usage.PromptTokens = evt.Usage.PromptTokens
+					usage.CompletionTokens = evt.Usage.CompletionTokens
+					usage.TotalTokens = evt.Usage.PromptTokens + evt.Usage.CompletionTokens
 				}
 			}
 		}
 
-		if err := scanner.Err(); err != nil {
-			c.Writer.Write([]byte("data: {\"error\": \"" + err.Error() + "\"}\n"))
-			c.Writer.Write([]byte("data: [DONE]\n"))
-			flusher.Flush()
+		if err := stream.Err(); err != nil {
+			c.Writer.Write([]byte("data: {\"error\": \"" + err.Error() + "\"}\n\n"))
 		}
+
 		// 发送结束标记
-		c.Writer.Write([]byte("data: [DONE]\n"))
+		c.Writer.Write([]byte("data: [DONE]\n\n"))
 		flusher.Flush()
 
 		// 记录统计数据
@@ -186,21 +169,43 @@ func ProxyHandler(c *gin.Context) {
 		}
 	} else {
 		// 非流式输出
-		body, _ := io.ReadAll(resp.Body)
-		if resp.StatusCode != http.StatusOK {
-			c.Data(resp.StatusCode, "application/json", body)
+		completion, err := client.Chat.Completions.New(c.Request.Context(), params)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call AI provider: " + err.Error()})
 			return
 		}
 
-		var openAIResp OpenAIResponse
-		if err := json.Unmarshal(body, &openAIResp); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse AI provider response"})
+		if len(completion.Choices) == 0 {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No response from AI provider"})
 			return
+		}
+
+		// 构造 OpenAI 格式响应
+		response := OpenAIResponse{
+			ID: completion.ID,
+			Choices: []struct {
+				Message OpenAIMessage `json:"message"`
+			}{
+				{
+					Message: OpenAIMessage{
+						Role:    string(completion.Choices[0].Message.Role),
+						Content: completion.Choices[0].Message.Content,
+					},
+				},
+			},
+		}
+
+		if completion.Usage.PromptTokens > 0 || completion.Usage.CompletionTokens > 0 {
+			response.Usage.PromptTokens = completion.Usage.PromptTokens
+			response.Usage.CompletionTokens = completion.Usage.CompletionTokens
+			response.Usage.TotalTokens = completion.Usage.PromptTokens + completion.Usage.CompletionTokens
 		}
 
 		// 记录统计数据
-		services.AddStats(endpoint.ID, openAIResp.Usage.PromptTokens, openAIResp.Usage.CompletionTokens, 0)
+		if response.Usage.PromptTokens > 0 || response.Usage.CompletionTokens > 0 {
+			services.AddStats(endpoint.ID, response.Usage.PromptTokens, response.Usage.CompletionTokens, 0)
+		}
 
-		c.JSON(http.StatusOK, openAIResp)
+		c.JSON(http.StatusOK, response)
 	}
 }
