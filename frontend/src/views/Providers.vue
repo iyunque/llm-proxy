@@ -13,14 +13,14 @@
       </el-input>
       <el-button type="primary" @click="handleAdd">
         <el-icon style="margin-right: 5px;"><Plus /></el-icon>
-        添加供应商
+        添加大模型供应商
       </el-button>
     </div>
 
     <el-table :data="filteredData" border style="width: 100%" v-loading="loading">
       <el-table-column prop="ID" label="ID" width="80" />
       <el-table-column prop="Name" label="供应商名称" />
-      <el-table-column prop="ModelName" label="模型名称" width="180" />
+      <el-table-column prop="ModelName" label="模型名称（逗号分隔多模型）" width="220" />
       <el-table-column prop="APIAddress" label="API 地址" show-overflow-tooltip />
       <el-table-column label="API Key" width="200">
         <template #default="scope">
@@ -56,7 +56,7 @@
           <el-input v-model="form.ModelName" placeholder="例如: gpt-4, deepseek-chat, glm-4" />
         </el-form-item>
         <el-form-item label="API 地址">
-          <el-input v-model="form.APIAddress" placeholder="例如: https://api.example.com/v1/chat" />
+          <el-input v-model="form.APIAddress" placeholder="例如: https://api.example.com/v1" />
         </el-form-item>
         <el-form-item label="API Key">
           <el-input v-model="form.APIKey" type="password" show-password />

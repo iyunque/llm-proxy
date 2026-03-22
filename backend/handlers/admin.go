@@ -5,6 +5,7 @@ import (
 	"ai-api-platform/backend/services"
 	"ai-api-platform/backend/utils"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -63,7 +64,16 @@ func CreateProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	models.DB.Create(&provider)
+
+	if strings.TrimSpace(provider.Name) == "" || strings.TrimSpace(provider.APIAddress) == "" || strings.TrimSpace(provider.APIKey) == "" || strings.TrimSpace(provider.ModelName) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name, APIAddress, APIKey and ModelName cannot be empty"})
+		return
+	}
+
+	if err := models.DB.Create(&provider).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create provider"})
+		return
+	}
 	c.JSON(http.StatusOK, provider)
 }
 
@@ -78,6 +88,12 @@ func UpdateProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	if strings.TrimSpace(provider.Name) == "" || strings.TrimSpace(provider.APIAddress) == "" || strings.TrimSpace(provider.APIKey) == "" || strings.TrimSpace(provider.ModelName) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name, APIAddress, APIKey and ModelName cannot be empty"})
+		return
+	}
+
 	if err := models.DB.Save(&provider).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save provider"})
 		return
@@ -112,6 +128,39 @@ func CreateEndpoint(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	if strings.TrimSpace(endpoint.Path) == "" || strings.TrimSpace(endpoint.ApiKey) == "" || endpoint.ProviderID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Path, ApiKey and ProviderID cannot be empty"})
+		return
+	}
+
+	// Ensure provider exists
+	var provider models.AIProvider
+	if err := models.DB.First(&provider, endpoint.ProviderID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider not found"})
+		return
+	}
+
+	// If SelectedModel is not provided, use provider's first model
+	if strings.TrimSpace(endpoint.SelectedModel) == "" {
+		modelName := provider.ModelName
+		if strings.Contains(modelName, ",") {
+			for _, m := range strings.Split(modelName, ",") {
+				if trimmed := strings.TrimSpace(m); trimmed != "" {
+					endpoint.SelectedModel = trimmed
+					break
+				}
+			}
+		} else {
+			endpoint.SelectedModel = strings.TrimSpace(modelName)
+		}
+	}
+
+	if strings.TrimSpace(endpoint.SelectedModel) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "SelectedModel is required"})
+		return
+	}
+
 	if err := models.DB.Create(&endpoint).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create endpoint"})
 		return
@@ -136,12 +185,18 @@ func UpdateEndpoint(c *gin.Context) {
 
 	// 接收更新数据
 	var input struct {
-		Path           string `json:"Path"`
-		ApiKey         string `json:"ApiKey"`
-		ProviderID     uint   `json:"ProviderID"`
-		SystemPrompt   string `json:"SystemPrompt"`
-		StreamOutput   bool   `json:"StreamOutput"`
-		EnableThinking bool   `json:"EnableThinking"`
+		Path                string  `json:"Path"`
+		ApiKey              string  `json:"ApiKey"`
+		ProviderID          uint    `json:"ProviderID"`
+		SelectedModel       string  `json:"SelectedModel"`
+		SystemPrompt        string  `json:"SystemPrompt"`
+		StreamOutput        bool    `json:"StreamOutput"`
+		EnableThinking      bool    `json:"EnableThinking"`
+		Temperature         float64 `json:"Temperature"`
+		FallbackProviderID1 uint    `json:"FallbackProviderID1"`
+		FallbackModel1      string  `json:"FallbackModel1"`
+		FallbackProviderID2 uint    `json:"FallbackProviderID2"`
+		FallbackModel2      string  `json:"FallbackModel2"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -149,17 +204,46 @@ func UpdateEndpoint(c *gin.Context) {
 		return
 	}
 
-	// 直接更新特定字段，确保 ProviderID 被正确更新
-	updates := models.APIEndpoint{
-		Path:           input.Path,
-		ApiKey:         input.ApiKey,
-		ProviderID:     input.ProviderID,
-		SystemPrompt:   input.SystemPrompt,
-		StreamOutput:   input.StreamOutput,
-		EnableThinking: input.EnableThinking,
+	var provider models.AIProvider
+	if err := models.DB.First(&provider, input.ProviderID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider not found"})
+		return
 	}
 
-	if err := models.DB.Model(&models.APIEndpoint{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+	selectedModel := strings.TrimSpace(input.SelectedModel)
+	if selectedModel == "" {
+		modelName := provider.ModelName
+		if strings.Contains(modelName, ",") {
+			for _, m := range strings.Split(modelName, ",") {
+				if trimmed := strings.TrimSpace(m); trimmed != "" {
+					selectedModel = trimmed
+					break
+				}
+			}
+		} else {
+			selectedModel = strings.TrimSpace(modelName)
+		}
+	}
+
+	if selectedModel == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "SelectedModel is required"})
+		return
+	}
+
+	if err := models.DB.Model(&models.APIEndpoint{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"path":                  input.Path,
+		"api_key":               input.ApiKey,
+		"provider_id":           input.ProviderID,
+		"selected_model":        selectedModel,
+		"system_prompt":         input.SystemPrompt,
+		"stream_output":         input.StreamOutput,
+		"enable_thinking":       input.EnableThinking,
+		"temperature":           input.Temperature,
+		"fallback_provider_id1": input.FallbackProviderID1,
+		"fallback_model1":       input.FallbackModel1,
+		"fallback_provider_id2": input.FallbackProviderID2,
+		"fallback_model2":       input.FallbackModel2,
+	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update endpoint: " + err.Error()})
 		return
 	}

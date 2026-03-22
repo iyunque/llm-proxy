@@ -9,10 +9,10 @@
       </template>
 
       <el-form :model="testForm" label-width="120px">
-        <el-form-item label="选择 API 路径">
+        <el-form-item label="选择 API 端点">
           <el-select 
             v-model="testForm.endpointID" 
-            placeholder="请选择要测试的 API 路径"
+            placeholder="请选择要测试的 API 端点"
             style="width: 100%;"
             @change="handleEndpointChange"
           >
@@ -38,7 +38,7 @@
             show-password
           />
           <div class="info-text">
-            根据选择的 API 路径自动加载，不可编辑
+            根据选择的 API 端点自动加载，不可编辑
           </div>
         </el-form-item>
 
@@ -90,7 +90,7 @@
 
       <el-alert 
         v-if="selectedEndpoint && selectedEndpoint.StreamOutput" 
-        title="注意：该 API 路径配置为流式输出，测试结果将逐字显示" 
+        title="注意：该 API 端点配置为流式输出，测试结果将逐字显示" 
         type="info" 
         show-icon 
         :closable="false"

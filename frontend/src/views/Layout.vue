@@ -22,11 +22,11 @@
         </el-menu-item>
         <el-menu-item index="/providers">
           <el-icon><Connection /></el-icon>
-          <template #title><span>LMM供应商</span></template>
+          <template #title><span>大模型供应商</span></template>
         </el-menu-item>
         <el-menu-item index="/endpoints">
           <el-icon><Link /></el-icon>
-          <template #title><span>API 路径</span></template>
+          <template #title><span>API端点</span></template>
         </el-menu-item>
         <el-menu-item index="/stats">
           <el-icon><DataLine /></el-icon>
@@ -34,7 +34,7 @@
         </el-menu-item>
         <el-menu-item index="/test">
           <el-icon><Operation /></el-icon>
-          <template #title><span>API 测试</span></template>
+          <template #title><span>API测试</span></template>
         </el-menu-item>
         <el-menu-item index="/user-center">
           <el-icon><User /></el-icon>
@@ -90,8 +90,8 @@ const isCollapse = ref(false)
 
 const breadcrumbMap = {
   '/': '仪表盘',
-  '/providers': 'LLM供应商管理',
-  '/endpoints': 'API 路径管理',
+  '/providers': '大模型供应商管理',
+  '/endpoints': 'API 端点管理',
   '/stats': '调用统计查询',
   '/test': 'API 接口测试',
   '/user-center': '个人中心'

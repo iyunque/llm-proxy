@@ -3,7 +3,7 @@
     <div class="toolbar">
       <el-input 
         v-model="searchText" 
-        placeholder="搜索路径" 
+        placeholder="搜索端点" 
         style="width: 300px; margin-right: 10px;"
         clearable
       >
@@ -13,7 +13,7 @@
       </el-input>
       <el-button type="primary" @click="handleAdd">
         <el-icon style="margin-right: 5px;"><Plus /></el-icon>
-        添加 API 路径
+        添加 API 端点
       </el-button>
     </div>
 
@@ -40,6 +40,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="Provider.Name" label="供应商" width="120" />
+      <el-table-column prop="SelectedModel" label="大模型名称" width="180" />
       <el-table-column prop="SystemPrompt" label="系统提示词" show-overflow-tooltip />
       <el-table-column prop="StreamOutput" label="流式输出" width="100">
         <template #default="scope">
@@ -63,7 +64,7 @@
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="filteredData.length === 0 && !loading" description="暂无 API 路径数据" />
+    <el-empty v-if="filteredData.length === 0 && !loading" description="暂无 API 端点数据" />
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="700px">
       <el-form :model="form" label-width="120px">
@@ -74,8 +75,13 @@
           <el-input v-model="form.ApiKey" placeholder="32位以内的字符" show-password />
         </el-form-item>
         <el-form-item label="供应商">
-          <el-select v-model="form.ProviderID" placeholder="选择供应商" style="width: 100%;">
+          <el-select v-model="form.ProviderID" placeholder="选择供应商" style="width: 100%;" @change="handleProviderChange">
             <el-option v-for="p in providers" :key="p.ID" :label="p.Name" :value="p.ID" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="大模型名称">
+          <el-select v-model="form.SelectedModel" placeholder="请选择模型名称" style="width: 100%;">
+            <el-option v-for="m in modelOptions" :key="m" :label="m" :value="m" />
           </el-select>
         </el-form-item>
         <el-form-item label="系统提示词">
@@ -86,6 +92,40 @@
         </el-form-item>
         <el-form-item label="思考模式">
           <el-switch v-model="form.EnableThinking" />
+        </el-form-item>
+        <el-form-item label="温度参数">
+          <el-input-number 
+            v-model="form.Temperature" 
+            :min="0" 
+            :max="2" 
+            :step="0.1" 
+            :precision="1"
+            placeholder="0.0-2.0"
+          />
+          <div class="info-text">
+            控制生成文本的随机性，0.0最确定，2.0最随机
+          </div>
+        </el-form-item>
+        <el-divider>备用模型配置</el-divider>
+        <el-form-item label="备用供应商1">
+          <el-select v-model="form.FallbackProviderID1" placeholder="选择备用供应商1" style="width: 100%;" clearable @change="handleFallbackProviderChange1">
+            <el-option v-for="p in providers" :key="p.ID" :label="p.Name" :value="p.ID" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备用模型1">
+          <el-select v-model="form.FallbackModel1" placeholder="请选择备用模型1" style="width: 100%;" clearable>
+            <el-option v-for="m in fallbackModelOptions1" :key="m" :label="m" :value="m" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备用供应商2">
+          <el-select v-model="form.FallbackProviderID2" placeholder="选择备用供应商2" style="width: 100%;" clearable @change="handleFallbackProviderChange2">
+            <el-option v-for="p in providers" :key="p.ID" :label="p.Name" :value="p.ID" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备用模型2">
+          <el-select v-model="form.FallbackModel2" placeholder="请选择备用模型2" style="width: 100%;" clearable>
+            <el-option v-for="m in fallbackModelOptions2" :key="m" :label="m" :value="m" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -114,9 +154,33 @@ const form = reactive({
   Path: '',
   ApiKey: '',
   ProviderID: null,
+  SelectedModel: '',
   SystemPrompt: '',
   StreamOutput: false,
   EnableThinking: false,
+  Temperature: 0.7,
+  FallbackProviderID1: null,
+  FallbackModel1: '',
+  FallbackProviderID2: null,
+  FallbackModel2: '',
+})
+
+const modelOptions = computed(() => {
+  const provider = providers.value.find(p => p.ID === form.ProviderID)
+  if (!provider || !provider.ModelName) return []
+  return provider.ModelName.split(',').map(m => m.trim()).filter(m => m)
+})
+
+const fallbackModelOptions1 = computed(() => {
+  const provider = providers.value.find(p => p.ID === form.FallbackProviderID1)
+  if (!provider || !provider.ModelName) return []
+  return provider.ModelName.split(',').map(m => m.trim()).filter(m => m)
+})
+
+const fallbackModelOptions2 = computed(() => {
+  const provider = providers.value.find(p => p.ID === form.FallbackProviderID2)
+  if (!provider || !provider.ModelName) return []
+  return provider.ModelName.split(',').map(m => m.trim()).filter(m => m)
 })
 
 const filteredData = computed(() => {
@@ -154,19 +218,72 @@ const copyToClipboard = (text) => {
 }
 
 const handleAdd = () => {
-  dialogTitle.value = '添加 API 路径'
-  Object.assign(form, { ID: null, Path: '', ApiKey: '', ProviderID: null, SystemPrompt: '', StreamOutput: false, EnableThinking: false })
+  dialogTitle.value = '添加 API 端点'
+  Object.assign(form, { 
+    ID: null, 
+    Path: '', 
+    ApiKey: '', 
+    ProviderID: null, 
+    SelectedModel: '', 
+    SystemPrompt: '', 
+    StreamOutput: false, 
+    EnableThinking: false, 
+    Temperature: 0.7,
+    FallbackProviderID1: null,
+    FallbackModel1: '',
+    FallbackProviderID2: null,
+    FallbackModel2: '',
+  })
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
-  dialogTitle.value = '编辑 API 路径'
+  dialogTitle.value = '编辑 API 端点'
   Object.assign(form, row)
+  if (!form.SelectedModel && modelOptions.value.length > 0) {
+    form.SelectedModel = modelOptions.value[0]
+  }
+  if (!form.FallbackModel1 && fallbackModelOptions1.value.length > 0) {
+    form.FallbackModel1 = fallbackModelOptions1.value[0]
+  }
+  if (!form.FallbackModel2 && fallbackModelOptions2.value.length > 0) {
+    form.FallbackModel2 = fallbackModelOptions2.value[0]
+  }
+  if (form.Temperature === undefined || form.Temperature === null) {
+    form.Temperature = 0.7
+  }
   dialogVisible.value = true
 }
 
+const handleProviderChange = (providerID) => {
+  const options = modelOptions.value
+  if (options.length > 0) {
+    form.SelectedModel = options[0]
+  } else {
+    form.SelectedModel = ''
+  }
+}
+
+const handleFallbackProviderChange1 = (providerID) => {
+  const options = fallbackModelOptions1.value
+  if (options.length > 0) {
+    form.FallbackModel1 = options[0]
+  } else {
+    form.FallbackModel1 = ''
+  }
+}
+
+const handleFallbackProviderChange2 = (providerID) => {
+  const options = fallbackModelOptions2.value
+  if (options.length > 0) {
+    form.FallbackModel2 = options[0]
+  } else {
+    form.FallbackModel2 = ''
+  }
+}
+
 const handleSave = async () => {
-  if (!form.Path || !form.ApiKey || !form.ProviderID) {
+  if (!form.Path || !form.ApiKey || !form.ProviderID || !form.SelectedModel) {
     ElMessage.warning('请填写完整信息')
     return
   }
