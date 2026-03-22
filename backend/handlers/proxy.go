@@ -212,18 +212,32 @@ func handleNonStreamingOutput(c *gin.Context, attempts []ModelAttempt, endpoint 
 	var completion *openai.ChatCompletion
 
 	for _, attempt := range attempts {
+		// 如果客户端已断开，直接返回
+		if c.Request.Context().Err() != nil {
+			return
+		}
+
 		client := openai.NewClient(
 			option.WithAPIKey(attempt.Provider.APIKey),
 			option.WithBaseURL(attempt.Provider.APIAddress),
+			option.WithHTTPClient(defaultHTTPClient),
 		)
 
 		params := buildChatCompletionParams(endpoint, *req, attempt.ModelName)
 		completion, lastError = client.Chat.Completions.New(c.Request.Context(), params)
 
+		// 如果客户端已断开，不记录失败也不继续尝试
+		if c.Request.Context().Err() != nil {
+			return
+		}
+
 		if lastError == nil && completion != nil && len(completion.Choices) > 0 {
 			break
 		}
-		services.AddFailedStats(endpoint.ID, attempt.Provider.Name, attempt.ModelName)
+		// 只有明确失败才记录失败统计
+		if lastError != nil {
+			services.AddFailedStats(endpoint.ID, attempt.Provider.Name, attempt.ModelName)
+		}
 	}
 
 	if lastError != nil || completion == nil || len(completion.Choices) == 0 {
