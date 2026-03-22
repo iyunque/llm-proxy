@@ -15,9 +15,14 @@ import (
 	"github.com/openai/openai-go/option"
 )
 
-// 默认 HTTP 客户端，超时时间由配置决定
+// 默认 HTTP 客户端，超时时间由配置决定（非流式）
 var defaultHTTPClient = &http.Client{
 	Timeout: time.Duration(utils.GlobalConfig.Proxy.Timeout) * time.Second,
+}
+
+// 流式输出使用的 HTTP 客户端，不设置超时（由 context 控制客户端断开）
+var streamingHTTPClient = &http.Client{
+	Timeout: 0,
 }
 
 type ProxyRequest struct {
@@ -148,7 +153,7 @@ func handleStreamingOutput(c *gin.Context, attempts []ModelAttempt, endpoint *mo
 		client := openai.NewClient(
 			option.WithAPIKey(attempt.Provider.APIKey),
 			option.WithBaseURL(attempt.Provider.APIAddress),
-			option.WithHTTPClient(defaultHTTPClient),
+			option.WithHTTPClient(streamingHTTPClient),
 		)
 
 		params := buildChatCompletionParams(endpoint, req, attempt.ModelName)
