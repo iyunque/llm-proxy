@@ -16,15 +16,20 @@
             style="width: 100%;"
             @change="handleEndpointChange"
           >
-            <el-option 
-              v-for="endpoint in endpoints" 
-              :key="endpoint.ID" 
-              :label="`${endpoint.Path} (${endpoint.Provider.Name})`" 
+            <el-option
+              v-for="endpoint in endpoints"
+              :key="endpoint.ID"
+              :label="`${endpoint.Path} (${endpoint.Provider.Name})`"
               :value="endpoint.ID"
             >
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>{{ endpoint.Path }}</span>
-                <el-tag size="small" type="info">{{ endpoint.Provider.Name }}</el-tag>
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span style="flex-shrink: 0;">{{ endpoint.Path }}</span>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+                  <el-tag size="small" type="info">{{ endpoint.Provider.Name }}</el-tag>
+                  <el-tag v-if="endpoint.SelectedModel" size="small" type="warning">{{ endpoint.SelectedModel }}</el-tag>
+                  <el-tag v-if="endpoint.FallbackModel1" size="small" type="danger">{{ endpoint.FallbackModel1 }}</el-tag>
+                  <el-tag v-if="endpoint.FallbackModel2" size="small" type="danger">{{ endpoint.FallbackModel2 }}</el-tag>
+                </div>
               </div>
             </el-option>
           </el-select>

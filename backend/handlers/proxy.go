@@ -3,7 +3,8 @@ package handlers
 import (
 	"ai-api-platform/backend/models"
 	"ai-api-platform/backend/services"
-	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -47,58 +48,28 @@ type ModelAttempt struct {
 	AttemptNum int
 }
 
-// callModelWithProvider 使用指定的供应商和模型进行API调用
-func callModelWithProvider(ctx context.Context, attempt ModelAttempt, endpoint *models.APIEndpoint, req *ProxyRequest) (*openai.ChatCompletion, error) {
-	// 创建 OpenAI 客户端
-	client := openai.NewClient(
-		option.WithAPIKey(attempt.Provider.APIKey),
-		option.WithBaseURL(attempt.Provider.APIAddress),
-	)
-
+// buildChatCompletionParams 构建聊天补全参数
+func buildChatCompletionParams(endpoint *models.APIEndpoint, req ProxyRequest, modelName string) openai.ChatCompletionNewParams {
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(endpoint.SystemPrompt),
 			openai.UserMessage(req.Content),
 		},
-		Model:       attempt.ModelName,
+		Model:       modelName,
 		Temperature: openai.Float(endpoint.Temperature),
 	}
 
-	// 思考模式开关（强制发送 true/false）
 	extraFields := map[string]interface{}{
 		"enable_thinking": endpoint.EnableThinking,
+		"reasoning_split": false,
 	}
-	extraFields["reasoning_split"] = false
-
 	params.SetExtraFields(extraFields)
 
-	// 调用API
-	completion, err := client.Chat.Completions.New(ctx, params)
-	return completion, err
+	return params
 }
 
-func ProxyHandler(c *gin.Context) {
-	path := c.Request.URL.Path
-	apiKey := c.GetHeader("X-API-Key")
-
-	// 从缓存获取 API 路径配置
-	endpoint, exists := services.GetEndpointByPath(path)
-	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
-		return
-	}
-	if endpoint.ApiKey != apiKey {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid API Path or API Key"})
-		return
-	}
-
-	var req ProxyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body, 'content' is required"})
-		return
-	}
-
-	// 准备模型尝试列表：主模型 + 备用模型1 + 备用模型2
+// buildAttemptsList 构建模型尝试列表
+func buildAttemptsList(endpoint *models.APIEndpoint) ([]ModelAttempt, error) {
 	var attempts []ModelAttempt
 
 	// 主模型
@@ -147,22 +118,88 @@ func ProxyHandler(c *gin.Context) {
 		}
 	}
 
-	if len(attempts) == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No model configured for provider"})
+	return attempts, nil
+}
+
+// handleStreamingOutput 处理流式输出
+func handleStreamingOutput(c *gin.Context, attempts []ModelAttempt, endpoint *models.APIEndpoint, req ProxyRequest) {
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Access-Control-Allow-Origin", "*")
+
+	var lastStreamErr error
+	streamStarted := false
+	c.Status(http.StatusForbidden)
+
+	for _, attempt := range attempts {
+		client := openai.NewClient(
+			option.WithAPIKey(attempt.Provider.APIKey),
+			option.WithBaseURL(attempt.Provider.APIAddress),
+		)
+
+		params := buildChatCompletionParams(endpoint, req, attempt.ModelName)
+		stream := client.Chat.Completions.NewStreaming(c.Request.Context(), params)
+
+		for stream.Next() {
+			chunk := stream.Current()
+			if len(chunk.Choices) > 0 {
+				if !streamStarted {
+					c.Status(http.StatusOK)
+					streamStarted = true
+				}
+				content := chunk.Choices[0].Delta.Content
+				if content != "" {
+					contentJSON, _ := json.Marshal(content)
+					sseData := fmt.Sprintf(`{"choices":[{"delta":{"content":%s},"index":0}]}`, string(contentJSON))
+					c.Writer.Write([]byte("data: " + sseData + "\n\n"))
+					c.Writer.Flush()
+				}
+			}
+		}
+
+		if err := stream.Err(); err != nil {
+			lastStreamErr = err
+			services.AddFailedStats(endpoint.ID, attempt.Provider.Name, attempt.ModelName)
+			stream.Close()
+			continue
+		}
+
+		stream.Close()
+		if !streamStarted {
+			c.Status(http.StatusOK)
+			streamStarted = true
+		}
+		c.Writer.Write([]byte("data: [DONE]\n\n"))
+		c.Writer.Flush()
 		return
 	}
 
-	// 按顺序尝试每个模型
+	// 所有模型都失败了
+	c.Status(http.StatusInternalServerError)
+	c.Writer.Write([]byte("data: " + fmt.Sprintf(`{"error":"All model attempts failed: %s"}`, strings.ReplaceAll(lastStreamErr.Error(), `"`, `\"`)) + "\n\n"))
+	c.Writer.Write([]byte("data: [DONE]\n\n"))
+	c.Writer.Flush()
+}
+
+// handleNonStreamingOutput 处理非流式输出
+func handleNonStreamingOutput(c *gin.Context, attempts []ModelAttempt, endpoint *models.APIEndpoint, req *ProxyRequest) {
 	var lastError error
 	var completion *openai.ChatCompletion
 
 	for _, attempt := range attempts {
-		completion, lastError = callModelWithProvider(c.Request.Context(), attempt, endpoint, &req)
+		client := openai.NewClient(
+			option.WithAPIKey(attempt.Provider.APIKey),
+			option.WithBaseURL(attempt.Provider.APIAddress),
+		)
+
+		params := buildChatCompletionParams(endpoint, *req, attempt.ModelName)
+		completion, lastError = client.Chat.Completions.New(c.Request.Context(), params)
+
 		if lastError == nil && completion != nil && len(completion.Choices) > 0 {
-			// 成功调用，跳出循环
 			break
 		}
-		// 记录失败的尝试，继续下一个
+		services.AddFailedStats(endpoint.ID, attempt.Provider.Name, attempt.ModelName)
 	}
 
 	if lastError != nil || completion == nil || len(completion.Choices) == 0 {
@@ -173,40 +210,63 @@ func ProxyHandler(c *gin.Context) {
 		return
 	}
 
-	// 根据流式输出配置决定响应方式
-	if endpoint.StreamOutput {
-		// 流式输出 - 这里需要重新实现，因为我们现在有completion对象
-		// 暂时保持原有逻辑，后续可以优化
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming with fallback not yet implemented"})
-		return
-	} else {
-		// 非流式输出
-		// 构造 OpenAI 格式响应
-		response := OpenAIResponse{
-			ID: completion.ID,
-			Choices: []struct {
-				Message OpenAIMessage `json:"message"`
-			}{
-				{
-					Message: OpenAIMessage{
-						Role:    string(completion.Choices[0].Message.Role),
-						Content: completion.Choices[0].Message.Content,
-					},
+	response := OpenAIResponse{
+		ID: completion.ID,
+		Choices: []struct {
+			Message OpenAIMessage `json:"message"`
+		}{
+			{
+				Message: OpenAIMessage{
+					Role:    string(completion.Choices[0].Message.Role),
+					Content: completion.Choices[0].Message.Content,
 				},
 			},
-		}
+		},
+	}
 
-		if completion.Usage.PromptTokens > 0 || completion.Usage.CompletionTokens > 0 {
-			response.Usage.PromptTokens = completion.Usage.PromptTokens
-			response.Usage.CompletionTokens = completion.Usage.CompletionTokens
-			response.Usage.TotalTokens = completion.Usage.PromptTokens + completion.Usage.CompletionTokens
-		}
+	if completion.Usage.PromptTokens > 0 || completion.Usage.CompletionTokens > 0 {
+		response.Usage.PromptTokens = completion.Usage.PromptTokens
+		response.Usage.CompletionTokens = completion.Usage.CompletionTokens
+		response.Usage.TotalTokens = completion.Usage.PromptTokens + completion.Usage.CompletionTokens
+	}
 
-		// 记录统计数据
-		if response.Usage.PromptTokens > 0 || response.Usage.CompletionTokens > 0 {
-			services.AddStats(endpoint.ID, response.Usage.PromptTokens, response.Usage.CompletionTokens, 0)
-		}
+	if response.Usage.PromptTokens > 0 || response.Usage.CompletionTokens > 0 {
+		services.AddStats(endpoint.ID, response.Usage.PromptTokens, response.Usage.CompletionTokens, 0)
+	}
 
-		c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
+}
+
+// ProxyHandler 处理代理请求
+func ProxyHandler(c *gin.Context) {
+	path := c.Request.URL.Path
+	apiKey := c.GetHeader("X-API-Key")
+
+	endpoint, exists := services.GetEndpointByPath(path)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
+		return
+	}
+	if endpoint.ApiKey != apiKey {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid API Path or API Key"})
+		return
+	}
+
+	var req ProxyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body, 'content' is required"})
+		return
+	}
+
+	attempts, err := buildAttemptsList(endpoint)
+	if err != nil || len(attempts) == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No model configured for provider"})
+		return
+	}
+
+	if endpoint.StreamOutput {
+		handleStreamingOutput(c, attempts, endpoint, req)
+	} else {
+		handleNonStreamingOutput(c, attempts, endpoint, &req)
 	}
 }

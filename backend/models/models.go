@@ -44,14 +44,17 @@ type APIEndpoint struct {
 }
 
 type APIStats struct {
-	ID             uint   `gorm:"primaryKey"`
-	APIEndpointID  uint   `gorm:"index:idx_endpoint_date"`
-	Date           string `gorm:"index:idx_endpoint_date"` // YYYY-MM-DD
-	CallCount      int64
-	InputTokens    int64
-	OutputTokens   int64
-	CacheHitTokens int64
-	LastUpdated    time.Time
+	ID              uint   `gorm:"primaryKey"`
+	APIEndpointID   uint   `gorm:"index:idx_endpoint_date"`
+	Date            string `gorm:"index:idx_endpoint_date"` // YYYY-MM-DD
+	CallCount       int64
+	InputTokens     int64
+	OutputTokens    int64
+	CacheHitTokens  int64
+	FailedCallCount int64  // 失败调用次数
+	FailedModels    string `gorm:"type:text"` // JSON格式的失败模型统计 {"model_name": count, ...}
+	LastFailedModel string // 最后失败的模型名称
+	LastUpdated     time.Time
 }
 
 func InitDB() error {
