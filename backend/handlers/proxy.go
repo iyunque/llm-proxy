@@ -3,15 +3,22 @@ package handlers
 import (
 	"ai-api-platform/backend/models"
 	"ai-api-platform/backend/services"
+	"ai-api-platform/backend/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 )
+
+// 默认 HTTP 客户端，超时时间由配置决定
+var defaultHTTPClient = &http.Client{
+	Timeout: time.Duration(utils.GlobalConfig.Proxy.Timeout) * time.Second,
+}
 
 type ProxyRequest struct {
 	Content string `json:"content" binding:"required"`
@@ -133,15 +140,27 @@ func handleStreamingOutput(c *gin.Context, attempts []ModelAttempt, endpoint *mo
 	c.Status(http.StatusForbidden)
 
 	for _, attempt := range attempts {
+		// 如果客户端已断开，直接返回
+		if c.Request.Context().Err() != nil {
+			return
+		}
+
 		client := openai.NewClient(
 			option.WithAPIKey(attempt.Provider.APIKey),
 			option.WithBaseURL(attempt.Provider.APIAddress),
+			option.WithHTTPClient(defaultHTTPClient),
 		)
 
 		params := buildChatCompletionParams(endpoint, req, attempt.ModelName)
 		stream := client.Chat.Completions.NewStreaming(c.Request.Context(), params)
 
 		for stream.Next() {
+			// 检查客户端是否已断开
+			if c.Request.Context().Err() != nil {
+				stream.Close()
+				return
+			}
+
 			chunk := stream.Current()
 			if len(chunk.Choices) > 0 {
 				if !streamStarted {
@@ -159,6 +178,11 @@ func handleStreamingOutput(c *gin.Context, attempts []ModelAttempt, endpoint *mo
 		}
 
 		if err := stream.Err(); err != nil {
+			// 如果是客户端断开导致的错误，不记录失败也不切换模型
+			if c.Request.Context().Err() != nil {
+				stream.Close()
+				return
+			}
 			lastStreamErr = err
 			services.AddFailedStats(endpoint.ID, attempt.Provider.Name, attempt.ModelName)
 			stream.Close()

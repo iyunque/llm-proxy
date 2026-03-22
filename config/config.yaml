@@ -16,3 +16,6 @@ database:
 
 stats:
   sync_interval: 60 # 内存同步到数据库的时间间隔（秒）
+
+proxy:
+  timeout: 20 # API 调用超时时间（秒）

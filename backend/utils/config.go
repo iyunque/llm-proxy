@@ -29,6 +29,9 @@ type Config struct {
 	Stats struct {
 		SyncInterval int `yaml:"sync_interval"`
 	} `yaml:"stats"`
+	Proxy struct {
+		Timeout int `yaml:"timeout"` // 超时时间（秒）
+	} `yaml:"proxy"`
 }
 
 var GlobalConfig Config
